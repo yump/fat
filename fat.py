@@ -318,13 +318,14 @@ def doSummary(db):
     print(" Daily Average")
     printStatsObject(db.meanDailyStats())
 
-def zeroHourToday():
-    return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+def zeroHourDatetime(dt):
+    """Return a datetime corresponding to 00:00:00 on the same day as dt."""
+    return dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
 def doToday(db):
     """Print today's kcal total and macro ratios."""
-    begin = zeroHourToday()
     end = datetime.now()
+    begin = zeroHourDatetime(end)
     filtered = db.filteredRange(begin, end)
     print(filtered)
     print("")
