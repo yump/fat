@@ -6,9 +6,9 @@ import argparse
 import shlex
 import parsedatetime
 import numbers
-import datetime as dt
 import numpy as np
 from collections import namedtuple, defaultdict
+from datetime import datetime
 from bisect import bisect
 from pprint import pformat
 
@@ -52,7 +52,7 @@ eatParser.add_argument("--amt", "-a", type=float, default=1.0)
 class Meal(namedtuple("Meal", ["time","name","amt","kcal","carbs","fat","protein"])):
     def __str__(self):
         return repr(type(self)(
-            time = str(dt.datetime.fromtimestamp(self.time)),
+            time = str(datetime.fromtimestamp(self.time)),
             name = self.name,
             amt = self.amt,
             kcal = round(self.kcal),
@@ -118,10 +118,10 @@ class FoodDB:
         self.eaten = []
         self._integrateFiles(filenames)
         if len(self.eaten) > 0:
-            self.begin = dt.datetime.fromtimestamp(self.eaten[0].time)
+            self.begin = datetime.fromtimestamp(self.eaten[0].time)
         else:
-            self.begin = dt.datetime.fromtimestamp(0)
-        self.end = dt.datetime.now()
+            self.begin = datetime.fromtimestamp(0)
+        self.end = datetime.now()
 
     def __str__(self):
         span = "{} to {}".format(self.begin, self.end)
@@ -319,12 +319,12 @@ def doSummary(db):
     printStatsObject(db.meanDailyStats())
 
 def zeroHourToday():
-    return dt.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
 def doToday(db):
     """Print today's kcal total and macro ratios."""
     begin = zeroHourToday()
-    end = dt.datetime.now()
+    end = datetime.now()
     filtered = db.filteredRange(begin, end)
     print(filtered)
     print("")
