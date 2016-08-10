@@ -8,7 +8,7 @@ import parsedatetime
 import numbers
 import numpy as np
 from collections import namedtuple, defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from bisect import bisect
 from pprint import pformat
 
@@ -332,8 +332,24 @@ def doToday(db):
     print("Today".center(15))
     printStatsObject(filtered.totalStats())
 
+def makeSsvLine(db):
+    stats = db.totalStats()
+    return " ".join(str(x) for x in (
+            db.begin.timestamp(),
+            stats.kcal,
+            stats.carbs,
+            stats.fat,
+            stats.protein))
+
 def doTimeSeries(db):
-    raise NotImplementedError
+    print("time kcal percent_carbs percent_fat percent_protein")
+    begin = db.begin
+    end = db.end
+    step = timedelta(days=1)
+    while begin < end:
+        window = db.filteredRange(begin, begin+step)
+        print(makeSsvLine(window))
+        begin += step
 
 if __name__ == "__main__":
     # Arguments
