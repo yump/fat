@@ -382,11 +382,3 @@ if __name__ == "__main__":
         doToday(db)
     elif args.command == "time_series":
         doTimeSeries(db)
-        
-    
-
-    
-
-
-
-
