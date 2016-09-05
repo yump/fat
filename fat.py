@@ -2,6 +2,7 @@
 
 # Food Accumulator Tool Copyright 2016
 
+import sys
 import argparse
 import shlex
 import parsedatetime
@@ -123,51 +124,59 @@ class FoodDB:
             self.begin = datetime.fromtimestamp(0)
         self.end = datetime.now()
 
+    def formatIngredients(self):
+        return "\n".join("  " + str(i) for i in sorted(self.ingredients.values(), key=lambda x: x.name))
+
+    def formatEaten(self):
+        return "\n".join("  " + str(e) for e in self.eaten)
+
     def __str__(self):
         span = "{} to {}".format(self.begin, self.end)
-        ingred = "\n".join("  " + str(i) for i in sorted(self.ingredients.values(), key=lambda x: x.name))
-        eaten = "\n".join("  " + str(e) for e in self.eaten)
+        ingred = self.formatIngredients()
+        eaten = self.formatEaten()
         return "{}\nIngredients:\n{}\nEaten:\n{}".format(span, ingred, eaten)
 
     def _parseLine(self, line):
         args = shlex.split(line, comments=True)
         if len(args) == 0:
             return
-        try:
-            command = args[0]
-            commandArgs = args[1:]
-        except IndexError:
-            raise ValueError("Bad line: {}".format(line))
-        try:
-            if command == "ingredient":
-                self._accumIngredient(commandArgs)
-            elif command == "combine":
-                self._accumCombine(commandArgs)
-            elif command == "eat":
-                self._accumEat(commandArgs)
-            else:
-                raise ValueError("Unknown command: {}".format(command))
-        except ValueError as e:
-            raise ValueError("Bad line: {}, {}".format(line, e))
+        command = args[0]
+        commandArgs = args[1:]
+        if command == "ingredient":
+            self._accumIngredient(commandArgs)
+        elif command == "combine":
+            self._accumCombine(commandArgs)
+        elif command == "eat":
+            self._accumEat(commandArgs)
+        else:
+            raise ValueError("Unknown command: {}".format(command))
 
     def _accumIngredient(self, args):
         newIngred = Ingredient.fromArgs(args)
-        assert newIngred.name not in self.ingredients
+        if newIngred.name in self.ingredients:
+            raise ValueError("Duplicate definition of \"{}\"".format(
+                newIngred.name))
         self.ingredients[newIngred.name] = newIngred
 
     def _accumCombine(self, args):
         parsed = combineParser.parse_args(args)
-        assert len(parsed.ingredList) % 2 == 0
-        components = [self.ingredients[x] for x in parsed.ingredList[::2]]
+        try:
+            components = [self.ingredients[x] for x in parsed.ingredList[::2]]
+        except KeyError as e:
+            raise ValueError("Unknown ingredient {}".format(e))
         amounts = [float(a) for a in parsed.ingredList[1::2]]
-        assert parsed.name not in self.ingredients
+        if len(components) != len(amounts):
+            raise ValueError("Every ingredient must be paired with an amount")
+        if parsed.name in self.ingredients:
+            raise ValueError("Food name conflict \"{}\"".format(parsed.name))
         newIngred = combine(parsed.name, components, amounts, parsed.unit)
         newIngred = 1/parsed.amt * newIngred
         self.ingredients[newIngred.name] = newIngred
 
     def _accumEat(self, args):
         parsed = eatParser.parse_args(args)
-        assert parsed.item in self.ingredients
+        if parsed.item not in self.ingredients:
+            raise ValueError("Unknown food: \"{}\"".format(parsed.item))
         ingredItem = self.ingredients[parsed.item]
         meal = Meal(parsed.time,
                     parsed.item,
@@ -182,8 +191,14 @@ class FoodDB:
         lines = []
         for fn in filenames:
             with open(fn) as file:
-                for line in file:
-                    self._parseLine(line)
+                for lineno, line in enumerate(file):
+                    try:
+                        self._parseLine(line)
+                    except Exception as e:
+                        print("ERROR {} line {}: \"{}\", {}".format(
+                            fn, lineno, line.strip(), e),
+                            file=sys.stderr)
+                        exit(1)
         self.eaten.sort(key=lambda m: m.time)
 
     def filteredRange(self, begin, end):
@@ -327,9 +342,10 @@ def doToday(db):
     end = datetime.now()
     begin = zeroHourDatetime(end)
     filtered = db.filteredRange(begin, end)
-    print(filtered)
+    print("Eaten:")
+    print(filtered.formatEaten())
     print("")
-    print("Today".center(15))
+    print("Total".center(15))
     printStatsObject(filtered.totalStats())
 
 def makeSsvLine(db):
