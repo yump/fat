@@ -359,7 +359,7 @@ def makeSsvLine(db):
 
 def doTimeSeries(db):
     print("time kcal percent_carbs percent_fat percent_protein")
-    begin = db.begin
+    begin = zeroHourDatetime(db.begin)
     end = db.end
     step = timedelta(days=1)
     while begin < end:
