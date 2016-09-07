@@ -367,14 +367,17 @@ def doTimeSeries(db):
         print(makeSsvLine(window))
         begin += step
 
-if __name__ == "__main__":
+def main(injectArgs=None):
     # Arguments
     mainParser = argparse.ArgumentParser(description="Analyze food log")
     mainParser.add_argument("command", choices=["dump","blame","summary","today","time_series"])
     mainParser.add_argument("file", nargs="+")
     mainParser.add_argument("--begin-interval", "-b", help="Only consider food eaten after")
     mainParser.add_argument("--end-interval", "-e", help="Only consider food eaten before")
-    args = mainParser.parse_args()
+    if injectArgs is None:
+        args = mainParser.parse_args()
+    else:
+        args = mainParser.parse_args(injectArgs)
     # Load files
     db = FoodDB(args.file)
     # Figure out the filtering dates
@@ -398,3 +401,7 @@ if __name__ == "__main__":
         doToday(db)
     elif args.command == "time_series":
         doTimeSeries(db)
+
+
+if __name__ == "__main__":
+    main()
