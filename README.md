@@ -3,6 +3,11 @@
 Process simply formatted text descriptions of foods and eating logs to analyze
 nutritional intake. 
 
+### Prerequisites
+
+ - parsedatetime library for python3
+ - docopt library for python3
+
 ### Food Accumulator Tool Script
 
 A fatscript file is a sequence of unix shell-like commands, of which there are
@@ -57,6 +62,31 @@ not recommended:
 
 ### Usage
 
+    fat.py [-b <date>] [-e <date>] (summary | today | blame | dump) <file>...
+    fat.py [-b <date>] [-e <date>] [--avg=<days>] time_series <file>...
+    
+    Commands:
+      summary       Show the average daily Calorie intake and macro ratios for the
+                    interval.
+      today         Show the meals eaten today, plus Calorie intake and macro 
+                    ratios.
+      blame         Show which meals and ingredients supplied the greatest share of
+                    Calories and macronutrients.
+      time_series   Print the daily Calorie intake and macro ratios for every day
+                    the interval, using a gnuplot-friendly space separated format.
+      dump          Print the ingredient table and meal log as they are represented
+                    internally.
+    
+    Options:
+      -b <date> --begin-interval=<date>  Only consider food eaten after this date.  
+                                         Natural language dates, such as 
+                                         "two weeks ago", are accepted.
+      -e <date> --end-interval=<date>    Only consider food eated before this date.
+                                         Natural language dates, such as 
+                                         "two weeks ago", are accepted.
+      --avg=<days>                       Moving average over some number of days in 
+                                         time_series mode.  [default: 1]
+
 ## weigh.py
 
 Use a Wii Balance Board to log your weight.
@@ -72,7 +102,7 @@ Use a Wii Balance Board to log your weight.
 3. In order for weigh.py to work without root permissions, copy the udev rule
    from the xwiimote repository, `xwiimote/res/70-udev-xwiimote.rules`, to
    `/etc/udev/rules.d/`, and add your user to the input group: `sudo usermod -aG
-   input $USER`.
+   input $USER`. This will take effect on the next login.
 
 4. Connect and pair the balance board the same way you would any other bluetooth
    device.  I recommend gnome-control-center or blueman-applet for this purpose.
