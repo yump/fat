@@ -1,6 +1,32 @@
 #!/usr/bin/env python3
 
-# Food Accumulator Tool Copyright 2016
+# Food Accumulator Tool Copyright 2016 Russell Haley
+
+"""fat.py: Food Accumulator Tool
+
+Usage:
+  fat.py [options] (summary | today | blame | time_series | dump) <file>...
+
+Commands:
+  summary       Show the average daily Calorie intake and macro ratios for the
+                interval.
+  today         Show the meals eaten today, plus Calorie intake and macro 
+                ratios.
+  blame         Show which meals and ingredients supplied the greatest share of
+                Calories and macronutrients.
+  time_series   Print the daily Calorie intake and macro ratios for every day
+                the interval, using a gnuplot-friendly space separated format.
+  dump          Print the ingredient table and meal log as they are represented
+                internally.
+
+Options:
+  -b <date> --begin-interval=<date>  Only consider food eaten after this date.  
+                                     Natural language dates, such as 
+                                     "two weeks ago", are accepted.
+  -e <date> --end-interval=<date>    Only consider food eated before this date.
+                                     Natural language dates, such as 
+                                     "two weeks ago", are accepted.
+"""
 
 import sys
 import argparse
@@ -10,6 +36,7 @@ import numbers
 import numpy as np
 from collections import namedtuple, defaultdict
 from datetime import datetime, timedelta
+from docopt import docopt
 from bisect import bisect
 from pprint import pformat
 
@@ -368,40 +395,35 @@ def doTimeSeries(db):
         begin += step
 
 def main(injectArgs=None):
-    # Arguments
-    mainParser = argparse.ArgumentParser(description="Analyze food log")
-    mainParser.add_argument("command", choices=["dump","blame","summary","today","time_series"])
-    mainParser.add_argument("file", nargs="+")
-    mainParser.add_argument("--begin-interval", "-b", help="Only consider food eaten after")
-    mainParser.add_argument("--end-interval", "-e", help="Only consider food eaten before")
-    if injectArgs is None:
-        args = mainParser.parse_args()
-    else:
-        args = mainParser.parse_args(injectArgs)
+    # Get args
+    args = docopt(__doc__, argv=injectArgs, version='0.2')
+
     # Load files
-    db = FoodDB(args.file)
+    db = FoodDB(args['<file>'])
+
     # Figure out the filtering dates
-    if args.begin_interval:
-        begin = cal.parseDT(args.begin_interval)[0]
+    if args['--begin-interval']:
+        begin = cal.parseDT(args['--begin-interval'])[0]
     else:
         begin = db.begin
-    if args.end_interval:
-        end = cal.parseDT(args.end_interval)[0]
+    if args['--end-interval']:
+        end = cal.parseDT(args['--end-interval'])[0]
     else:
         end = db.end
     # Filter
     db = db.filteredRange(begin, end)
-    if args.command == "dump":
+
+    # Do the thang
+    if args['dump']:
         print(db)
-    elif args.command == "blame":
+    elif args['blame']:
         doBlame(db)
-    elif args.command == "summary":
+    elif args['summary']:
         doSummary(db)
-    elif args.command == "today":
+    elif args['today']:
         doToday(db)
-    elif args.command == "time_series":
+    elif args['time_series']:
         doTimeSeries(db)
-
-
+    
 if __name__ == "__main__":
     main()
