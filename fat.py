@@ -5,7 +5,8 @@
 """fat.py: Food Accumulator Tool
 
 Usage:
-  fat.py [options] (summary | today | blame | time_series | dump) <file>...
+  fat.py [-b <date>] [-e <date>] (summary | today | blame | dump) <file>...
+  fat.py [-b <date>] [-e <date>] [--avg=<days>] time_series <file>...
 
 Commands:
   summary       Show the average daily Calorie intake and macro ratios for the
@@ -26,6 +27,8 @@ Options:
   -e <date> --end-interval=<date>    Only consider food eated before this date.
                                      Natural language dates, such as 
                                      "two weeks ago", are accepted.
+  --avg=<days>                       Moving average over some number of days in 
+                                     time_series mode.  [default: 1]
 """
 
 import sys
@@ -375,24 +378,25 @@ def doToday(db):
     print("Total".center(15))
     printStatsObject(filtered.totalStats())
 
-def makeSsvLine(db):
-    stats = db.totalStats()
+def makeSsvLine(db, timestamp):
+    stats = db.meanDailyStats()
     return " ".join(str(x) for x in (
-            db.begin.timestamp(),
+            timestamp,
             stats.kcal,
             stats.carbs,
             stats.fat,
             stats.protein))
 
-def doTimeSeries(db):
+def doTimeSeries(db, avg):
     print("time kcal percent_carbs percent_fat percent_protein")
-    begin = zeroHourDatetime(db.begin)
+    cursor = zeroHourDatetime(db.begin)
     end = db.end
     step = timedelta(days=1)
-    while begin < end:
-        window = db.filteredRange(begin, begin+step)
-        print(makeSsvLine(window))
-        begin += step
+    avg_td = timedelta(days=avg)
+    while cursor < end:
+        window = db.filteredRange(cursor + step - avg_td, cursor + step)
+        print(makeSsvLine(window, cursor.timestamp()))
+        cursor += step
 
 def main(injectArgs=None):
     # Get args
@@ -423,7 +427,7 @@ def main(injectArgs=None):
     elif args['today']:
         doToday(db)
     elif args['time_series']:
-        doTimeSeries(db)
+        doTimeSeries(db, float(args['--avg']))
     
 if __name__ == "__main__":
     main()
