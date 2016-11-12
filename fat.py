@@ -270,28 +270,48 @@ class FoodDB:
         =======
         kcal
             Total Calorie intake
-        carbs
+        carb_pct
             Percent energy from carbs
-        fat
+        fat_pct
             Percent energy from fat
-        protein
+        protein_pct
             Percent energy from protein
+        carb_g
+            Grams of carbohydrate
+        fat_g
+            Grams of fat
+        protein_g
+            Grams of protein
         """
         totCal = 0
-        totCarbCal = 0
-        totFatCal = 0
-        totProtCal = 0
+        totCarb = 0
+        totFat = 0
+        totProt = 0
         for meal in self.eaten:
             totCal += meal.kcal
-            totCarbCal += meal.carbs * 4
-            totFatCal += meal.fat * 9
-            totProtCal += meal.protein * 4
+            totCarb += meal.carbs
+            totFat += meal.fat
+            totProt += meal.protein
+        totCarbCal = totCarb * 4
+        totFatCal = totFat * 9
+        totProtCal = totProt * 4
         totMacroCal = sum((totCarbCal, totFatCal, totProtCal))
-        return namedtuple("TotalStats",["kcal","carbs","fat","protein"])(
+        return namedtuple("TotalStats",[
+            "kcal",
+            "carb_pct",
+            "fat_pct",
+            "protein_pct",
+            "carb_g",
+            "fat_g",
+            "protein_g"])(
             totCal,
             100 * totCarbCal / totMacroCal,
             100 * totFatCal / totMacroCal,
-            100 * totProtCal / totMacroCal)
+            100 * totProtCal / totMacroCal,
+            totCarb,
+            totFat,
+            totProt
+            )
 
     def meanDailyStats(self):
         """Calculate the mean daily statistics for this FoodDB.
@@ -300,19 +320,35 @@ class FoodDB:
         =======
         kcal
             Average daily Calorie intake
-        carbs
+        carb_pct
             Percent energy from carbs
-        fat
+        fat_pct
             Percent energy from fat
-        protein
+        protein_pct
             Percent energy from protein
+        carb_g
+            Grams of carbohydrate
+        fat_g
+            Grams of fat
+        protein_g
+            Grams of protein
         """
         deltaDays = (self.end - self.begin).total_seconds() / (3600*24)
         deltaDays = max(1, deltaDays) #daily stats nonsensical <1 day, avoid /0
         total = self.totalStats()
-        return namedtuple("MeanDailyStats",["kcal","carbs","fat","protein"])(
+        return namedtuple("MeanDailyStats",[
+            "kcal",
+            "carb_pct",
+            "fat_pct",
+            "protein_pct",
+            "carb_g",
+            "fat_g",
+            "protein_g"])(
             total.kcal / deltaDays,
-            *total[1:])
+            *total[1:4],
+            total.carb_g / deltaDays,
+            total.fat_g / deltaDays,
+            total.protein_g / deltaDays)
 
     def blameMeals(self):
         def mealCGen():
@@ -366,13 +402,13 @@ def doBlame(db):
                 print("    {:25} {:4.1f}%".format(culprit, percent))
 
 def printStatsObject(stats):
-    print("Calories {:6.1f}".format(stats.kcal))
-    print("Carbs   {:6.1f}%".format(stats.carbs))
-    print("Fat     {:6.1f}%".format(stats.fat))
-    print("Protein {:6.1f}%".format(stats.protein))
+    print("Calories {:5.0f}".format(stats.kcal))
+    print("Carbs    {:7.1f} g  ({:4.1f}%)".format(stats.carb_g, stats.carb_pct))
+    print("Fat      {:7.1f} g  ({:4.1f}%)".format(stats.fat_g, stats.fat_pct))
+    print("Protein  {:7.1f} g  ({:4.1f}%)".format(stats.protein_g, stats.protein_pct))
 
 def doSummary(db):
-    print(" Daily Average")
+    print("Daily Average".center(25))
     printStatsObject(db.meanDailyStats())
 
 def zeroHourDatetime(dt):
@@ -387,7 +423,7 @@ def doToday(db):
     print("Eaten:")
     print(filtered.formatEaten())
     print("")
-    print("Total".center(15))
+    print("Total Today".center(25))
     printStatsObject(filtered.totalStats())
 
 def makeSsvLine(db, timestamp):
@@ -395,12 +431,15 @@ def makeSsvLine(db, timestamp):
     return " ".join(str(x) for x in (
             timestamp,
             stats.kcal,
-            stats.carbs,
-            stats.fat,
-            stats.protein))
+            stats.carb_pct,
+            stats.fat_pct,
+            stats.protein_pct,
+            stats.carb_g,
+            stats.fat_g,
+            stats.protein_g))
 
 def doTimeSeries(db, avg):
-    print("time kcal percent_carbs percent_fat percent_protein")
+    print("time kcal percent_carbs percent_fat percent_protein carbs_g fat_g protein_g")
     cursor = zeroHourDatetime(db.begin)
     end = db.end
     step = timedelta(days=1)
